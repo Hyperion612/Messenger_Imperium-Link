@@ -1,0 +1,18 @@
+{
+  "name": "Империум Линк — Империя Гиперион",
+  "short_name": "Империум",
+  "description": "Защищённый мессенджер цифрового государства Империя Гиперион",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0a20",
+  "theme_color": "#0a0a20",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "https://image.qwenlm.ai/generated-images/d48f1dca-04eb-475a-8155-934c8437af74/_result.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
