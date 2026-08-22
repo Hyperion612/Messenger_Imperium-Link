@@ -1,290 +1,334 @@
-import { useEffect, useRef, useState } from "react";
-import { useImperium } from "../lib/store";
-import { EDICTS } from "../lib/data";
-import { ICrest, IShield, ILock, IEye, IRefresh, IBack, IBolt } from "../lib/icons";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useStore } from "../store";
+import { ImperialSeal, Laurel, ILock, IEye, IShield, IArrowR, ISignal, ILandmark, IUsers } from "../icons";
 
-const BG = "https://image.qwenlm.ai/generated-images/03df9204-34c1-447a-a983-cb0d5def3bdd/_result.png";
+type Phase = "creds" | "2fa" | "recover" | "recoverDone";
 
-type Step = "login" | "2fa" | "recover" | "recover-done";
-
-const formatHit = (raw: string) => {
-  const digits = raw.replace(/[^0-9]/g, "").slice(0, 5);
-  return digits ? `HIT-${digits}` : raw.replace(/[^a-zA-Z-]/g, "").toUpperCase().slice(0, 4);
-};
+const EDICTS_TICKER = [
+  "Указ №117 — награды за активность удвоены до конца цикла",
+  "Закон HYR-126 — переводы HYPER без пошлин",
+  "Врата Аврора ↔ Кристаллис открыты для всех граждан",
+  "ИИ-ОКО «Эйдос» отражает 40 000 угроз в секунду",
+  "Сенат созывает курию финансов в полдень",
+  "Парад легионов в Кристаллисе — в субботу, у Золотых Врат",
+];
 
 export default function Login() {
-  const { api } = useImperium();
-  const [step, setStep] = useState<Step>("login");
-  const [name, setName] = useState("");
-  const [hit, setHit] = useState("");
-  const [pass, setPass] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const { state, a } = useStore();
+  const [phase, setPhase] = useState<Phase>("creds");
+  const [cid, setCid] = useState("HIT-77777");
+  const [pwd, setPwd] = useState("aureum");
+  const [showPwd, setShowPwd] = useState(false);
   const [err, setErr] = useState("");
-  const [shake, setShake] = useState(false);
-  const [code, setCode] = useState("");
-  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
-  const [cooldown, setCooldown] = useState(0);
+  const [shake, setShake] = useState(0);
   const [email, setEmail] = useState("");
-  const [tick, setTick] = useState(0);
-  const boxRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [code, setCode] = useState("");
+  const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    const h = window.setInterval(() => setTick((x) => x + 1), 6000);
-    return () => clearInterval(h);
-  }, []);
+  const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const h = window.setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(h);
-  }, [cooldown]);
-
-  const genCode = () => {
-    const c = String(Math.floor(100000 + Math.random() * 900000));
+  const start2fa = () => {
+    const idOk = /^HIT-\d{5}$/.test(cid.trim().toUpperCase());
+    if (!idOk) {
+      setErr("ID гражданина должен иметь формат HIT-XXXXX (пять цифр)");
+      setShake((x) => x + 1);
+      return;
+    }
+    if (pwd.length < 4) {
+      setErr("Пароль слишком короткий. Демо-пароль: aureum");
+      setShake((x) => x + 1);
+      return;
+    }
+    if (pwd !== "aureum") {
+      setErr("Неверный пароль. Для демо-доступа используйте aureum");
+      setShake((x) => x + 1);
+      return;
+    }
+    setErr("");
+    const c = genCode();
     setCode(c);
-    api.toast("push", "Гиперион-ID • 2ФА", `Код подтверждения: ${c.slice(0, 3)} ${c.slice(3)}`, undefined, "🛡️");
-    setCooldown(30);
+    setDigits(["", "", "", "", "", ""]);
+    setPhase("2fa");
+    a.toast("push", "🔐 Гиперион-ID • Push-уведомление", `Код подтверждения входа: ${c}`);
   };
 
-  const fail = (msg: string) => {
-    setErr(msg);
-    setShake(true);
-    setTimeout(() => setShake(false), 550);
-  };
-
-  const submitLogin = () => {
-    setErr("");
-    if (name.trim().length < 2) return fail("Укажите имя гражданина (минимум 2 символа)");
-    if (!/^HIT-\d{5}$/.test(hit)) return fail("ID гражданина имеет формат HIT-XXXXX, например HIT-07770");
-    if (pass.length < 4) return fail("Пароль слишком короток — минимум 4 символа");
-    setBusy(true);
-    setTimeout(() => {
-      setBusy(false);
+  const submit2fa = (arr: string[]) => {
+    const val = arr.join("");
+    if (val.length < 6) return;
+    if (val === code) {
+      a.completeLogin(cid.trim().toUpperCase());
+    } else {
+      setErr("Неверный код. Проверьте push-уведомление.");
+      setShake((x) => x + 1);
       setDigits(["", "", "", "", "", ""]);
-      setStep("2fa");
-      genCode();
-    }, 800);
+      refs.current[0]?.focus();
+    }
   };
 
-  const setDigit = (i: number, v: string) => {
+  const onDigit = (i: number, v: string) => {
     const d = v.replace(/\D/g, "").slice(-1);
-    setDigits((prev) => {
-      const next = [...prev];
-      next[i] = d;
-      return next;
-    });
-    if (d && i < 5) boxRefs.current[i + 1]?.focus();
-  };
-
-  const onCodeKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) boxRefs.current[i - 1]?.focus();
-    if (e.key === "Enter") verify();
-  };
-
-  const verify = () => {
-    const entered = digits.join("");
-    if (entered.length < 6) return fail("Введите все 6 цифр кода");
-    setBusy(true);
-    setTimeout(() => {
-      setBusy(false);
-      if (entered === code) api.login(name.trim(), hit);
-      else {
-        fail("Код неверен. Стража рекомендует запросить новый");
-        setDigits(["", "", "", "", "", ""]);
-        boxRefs.current[0]?.focus();
-      }
-    }, 600);
-  };
-
-  const submitRecover = () => {
+    const next = [...digits];
+    next[i] = d;
+    setDigits(next);
     setErr("");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail("Похоже, это не почтовый адрес Империи");
-    setBusy(true);
-    setTimeout(() => { setBusy(false); setStep("recover-done"); }, 900);
+    if (d && i < 5) refs.current[i + 1]?.focus();
+    if (next.every((x) => x !== "")) submit2fa(next);
+  };
+  const onKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
+  };
+  const onPaste = (e: React.ClipboardEvent) => {
+    const t = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!t) return;
+    e.preventDefault();
+    const next = t.split("").concat(Array(6).fill("")).slice(0, 6);
+    setDigits(next);
+    if (t.length === 6) submit2fa(next);
+    else refs.current[t.length]?.focus();
   };
 
-  const fillDemo = () => { setName("Валериан Кест"); setHit("HIT-07770"); setPass("hyperion"); setErr(""); };
+  const recover = () => {
+    if (!/^HIT-\d{5}$/.test(cid.trim().toUpperCase()) || !email.includes("@")) {
+      setErr("Укажите корректный ID (HIT-XXXXX) и email");
+      setShake((x) => x + 1);
+      return;
+    }
+    setErr("");
+    setPhase("recoverDone");
+    a.toast("info", "📮 Почта Империи", `Ссылка для восстановления пароля отправлена на ${email}`);
+  };
+
+  const onlineCount = useMemo(
+    () => Object.values(state.citizens).filter((c) => c.presence === "online").length * 12847 + 3120,
+    [state.citizens]
+  );
 
   return (
-    <div className="h-full flex">
-      {/* Имперская панель */}
-      <div className="relative hidden lg:flex w-[46%] xl:w-[42%] flex-col justify-between overflow-hidden">
-        <img src={BG} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a20] via-[#0a0a20]/38 to-[#0a0a20]/70" />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a20]" />
-        <div className="relative z-10 flex items-center gap-4 p-10">
-          <ICrest size={54} />
-          <div>
-            <div className="font-display text-3xl xl:text-4xl font-800 tracking-wide text-white" style={{ fontWeight: 800 }}>
-              ИМПЕРИУМ <span className="gold-text">ЛИНК</span>
+    <div className="h-full bg-imperial relative overflow-hidden">
+      <div className="absolute inset-0 bg-grid" />
+      {[...Array(14)].map((_, i) => (
+        <span
+          key={i}
+          className="ember"
+          style={{
+            left: `${(i * 7.3 + 3) % 100}%`,
+            ["--ember-t" as string]: `${12 + (i % 7) * 3}s`,
+            ["--ember-d" as string]: `${-i * 2.2}s`,
+            ["--ember-o" as string]: 0.25 + (i % 4) * 0.12,
+            ["--ember-x" as string]: `${(i % 2 ? 1 : -1) * (20 + i * 4)}px`,
+          }}
+        />
+      ))}
+
+      <div className="relative h-full max-w-6xl mx-auto px-6 lg:px-10 grid lg:grid-cols-[1.15fr_1fr] items-center gap-10 overflow-y-auto">
+        {/* ===== имперская панель ===== */}
+        <div className="hidden lg:flex flex-col justify-center py-10 anim-rise">
+          <div className="flex items-center gap-5">
+            <div className="relative w-24 h-24 grid place-items-center">
+              <div className="absolute inset-0 rounded-full border border-dashed border-gold/40 spin-slow" />
+              <ImperialSeal size={76} className="glow-breathe" />
             </div>
-            <div className="mt-1 text-[11px] tracking-[0.34em] text-silver uppercase">Связь Империи Гиперион</div>
+            <div>
+              <div className="text-[11px] tracking-[0.42em] text-silver/70 uppercase">Цифровое государство • Гиперион</div>
+              <h1 className="font-display font-black text-5xl xl:text-6xl leading-[1.02] mt-1.5">
+                Империум <span className="shimmer-text">Линк</span>
+              </h1>
+            </div>
           </div>
-        </div>
-        <div className="relative z-10 px-10 pb-10 max-w-xl">
-          <div className="hairline-gold mb-6" />
-          <div key={tick} className="anim-fade-up">
-            <div className="text-[11px] tracking-[0.3em] text-gold/80 uppercase mb-2">Сводка Канцелярии</div>
-            <p className="font-display text-xl xl:text-2xl leading-snug text-white/92 italic" style={{ fontWeight: 600 }}>
-              {EDICTS[tick % EDICTS.length]}
-            </p>
-          </div>
-          <div className="mt-8 grid grid-cols-3 gap-4">
+
+          <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-mut">
+            Единая защищённая связь Империи: личные переписки с оконечным шифрованием, комнаты
+            провинций, каналы Сената и слово Императора — в одном приложении. Веб и мобильные
+            платформы, доставка сообщений быстрее удара сердца.
+          </p>
+
+          <div className="mt-8 grid grid-cols-3 gap-3 max-w-xl">
             {[
-              ["128 404", "граждан в сети"],
-              ["4", "провинции"],
-              ["47", "цикл Империи"],
-            ].map(([v, l]) => (
-              <div key={l} className="glass-soft rounded-lg px-4 py-3">
-                <div className="font-display text-2xl text-gold" style={{ fontWeight: 700 }}>{v}</div>
-                <div className="text-[11px] text-silver/80 mt-0.5">{l}</div>
+              { icon: <IUsers size={18} />, v: onlineCount.toLocaleString("ru-RU"), l: "граждан в сети" },
+              { icon: <ILandmark size={18} />, v: "4", l: "провинции на связи" },
+              { icon: <ISignal size={18} />, v: "< 100 мс", l: "доставка сообщения" },
+            ].map((s2) => (
+              <div key={s2.l} className="glass rounded-xl px-4 py-3.5">
+                <div className="flex items-center gap-2 text-gold/80">{s2.icon}<span className="text-[10px] uppercase tracking-wider text-mut">live</span></div>
+                <div className="font-display font-bold text-xl text-body mt-1">{s2.v}</div>
+                <div className="text-[11px] text-mut">{s2.l}</div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Терминал доступа */}
-      <div className="relative flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 justify-center mb-8">
-            <ICrest size={42} />
-            <div className="font-display text-2xl text-white" style={{ fontWeight: 800 }}>
-              ИМПЕРИУМ <span className="gold-text">ЛИНК</span>
+          <div className="mt-8 max-w-xl glass gold-frame rounded-xl overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-line/60 flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-[0.3em] text-gold/90">Имперские указы • эфир</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-mint"><span className="w-1.5 h-1.5 rounded-full bg-mint animate-pulse" />LIVE</span>
+            </div>
+            <div className="h-24 overflow-hidden relative">
+              <div className="ticker-track absolute inset-x-0 top-0">
+                {[...EDICTS_TICKER, ...EDICTS_TICKER].map((t, i) => (
+                  <div key={i} className="px-4 py-2 text-[13px] text-silver/85 flex items-center gap-2">
+                    <span className="text-gold">⚜</span>{t}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className={`glass gold-frame rounded-2xl p-7 sm:p-8 ${shake ? "anim-shake" : "anim-fade-up"}`}>
-            {step === "login" && (
+        {/* ===== форма ===== */}
+        <div className="flex items-center justify-center py-8 lg:py-0">
+          <div key={shake} className={`w-full max-w-md glass-strong gold-frame rounded-2xl p-7 sm:p-8 anim-slide-left ${shake ? "anim-shake" : ""}`}>
+            <div className="lg:hidden flex items-center gap-3 mb-6">
+              <ImperialSeal size={44} />
+              <div>
+                <div className="font-display font-extrabold text-2xl leading-none">Империум <span className="text-gold">Линк</span></div>
+                <div className="text-[10px] tracking-[0.3em] uppercase text-mut mt-1">Империя Гиперион</div>
+              </div>
+            </div>
+
+            {phase === "creds" && (
               <>
-                <div className="flex items-center gap-2 text-gold/90 text-[11px] tracking-[0.28em] uppercase">
-                  <ILock size={14} /> Терминал доступа • шифрование E2E
-                </div>
-                <h1 className="font-display text-3xl text-white mt-3" style={{ fontWeight: 800 }}>
-                  Врата Империи
-                </h1>
-                <p className="text-silver/85 text-sm mt-1.5">Предъявите удостоверение гражданина</p>
-
-                <div className="mt-6 space-y-4">
+                <h2 className="font-display font-bold text-3xl">Вход в цитадель</h2>
+                <p className="text-sm text-mut mt-1.5">Предъявите Гиперион-ID и пароль. Сессия действует 24 часа.</p>
+                <form className="mt-6 space-y-4" onSubmit={(e) => { e.preventDefault(); start2fa(); }}>
                   <div>
-                    <label className="text-[11px] tracking-widest uppercase text-silver/70">Имя гражданина</label>
-                    <input className="input-imp w-full mt-1.5 rounded-lg px-3.5 py-2.5 text-sm" placeholder="Например: Валериан Кест"
-                      value={name} onChange={(e) => setName(e.target.value)} />
+                    <label className="text-[11px] uppercase tracking-widest text-silver/80">ID гражданина</label>
+                    <div className="mt-1.5 flex items-center gap-2 input-imperial rounded-xl px-3.5 h-12">
+                      <IUserMini />
+                      <input
+                        value={cid}
+                        onChange={(e) => setCid(e.target.value.toUpperCase())}
+                        placeholder="HIT-XXXXX"
+                        className="bg-transparent outline-none w-full text-[15px] font-semibold tracking-wider text-goldsoft"
+                        maxLength={9}
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="text-[11px] tracking-widest uppercase text-silver/70">ID гражданина</label>
-                    <input className="input-imp w-full mt-1.5 rounded-lg px-3.5 py-2.5 text-sm font-mono tracking-[0.18em]" placeholder="HIT-07770"
-                      value={hit} onChange={(e) => setHit(formatHit(e.target.value))} onKeyDown={(e) => e.key === "Enter" && submitLogin()} />
-                  </div>
-                  <div>
-                    <label className="text-[11px] tracking-widest uppercase text-silver/70">Пароль</label>
-                    <div className="relative">
-                      <input className="input-imp w-full mt-1.5 rounded-lg px-3.5 py-2.5 pr-10 text-sm" placeholder="••••••••"
-                        type={showPass ? "text" : "password"} value={pass}
-                        onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitLogin()} />
-                      <button className="absolute right-3 top-1/2 translate-y-1 text-silver/60 hover:text-gold transition-colors"
-                        style={{ marginTop: 3 }} onClick={() => setShowPass((v) => !v)} aria-label="Показать пароль">
-                        <IEye size={18} />
+                    <label className="text-[11px] uppercase tracking-widest text-silver/80">Пароль</label>
+                    <div className="mt-1.5 flex items-center gap-2 input-imperial rounded-xl px-3.5 h-12">
+                      <ILock size={17} className="text-mut shrink-0" />
+                      <input
+                        type={showPwd ? "text" : "password"}
+                        value={pwd}
+                        onChange={(e) => setPwd(e.target.value)}
+                        placeholder="••••••••"
+                        className="bg-transparent outline-none w-full text-[15px]"
+                      />
+                      <button type="button" onClick={() => setShowPwd((v) => !v)} className="text-mut hover:text-gold transition-colors">
+                        <IEye size={17} />
                       </button>
                     </div>
                   </div>
-                </div>
-
-                {err && <div className="mt-3 text-[13px] text-ember flex items-center gap-1.5">⚠ {err}</div>}
-
-                <button className="btn-gold w-full mt-5 rounded-xl py-3 text-sm tracking-wide flex items-center justify-center gap-2"
-                  onClick={submitLogin} disabled={busy}>
-                  {busy ? <span className="typing-dot" /> : <IBolt size={16} />}
-                  {busy ? "Проверка печати…" : "Войти в Империю"}
+                  {err && <div className="text-[13px] text-ember flex items-center gap-2">⚠ {err}</div>}
+                  <button type="submit" className="btn-gold w-full h-12 rounded-xl font-bold text-[15px] flex items-center justify-center gap-2">
+                    Войти через Гиперион-ID <IArrowR size={17} />
+                  </button>
+                </form>
+                <button onClick={() => { setPhase("recover"); setErr(""); }} className="mt-4 text-[13px] text-silver/70 hover:text-gold transition-colors">
+                  Забыли пароль? Восстановление через email
                 </button>
-
-                <div className="mt-4 flex items-center justify-between text-[13px]">
-                  <button className="text-silver/75 hover:text-gold transition-colors" onClick={() => { setStep("recover"); setErr(""); }}>
-                    Забыли доступ?
-                  </button>
-                  <button className="text-silver/75 hover:text-gold transition-colors" onClick={fillDemo}>
-                    Демо-доступ ⚜
-                  </button>
+                <div className="mt-6 rounded-xl border border-gold/20 bg-gold/[0.06] px-4 py-3 text-[12px] leading-relaxed text-goldsoft/90">
+                  <b>Демо-доступ:</b> ID <span className="font-mono text-gold">HIT-77777</span> • пароль{" "}
+                  <span className="font-mono text-gold">aureum</span>. Код 2FA придёт в push-уведомлении.
                 </div>
               </>
             )}
 
-            {step === "2fa" && (
+            {phase === "2fa" && (
               <>
-                <div className="flex items-center gap-2 text-gold/90 text-[11px] tracking-[0.28em] uppercase">
-                  <IShield size={14} /> Двухфакторная печать
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gold/10 border border-gold/30 grid place-items-center text-gold"><IShield size={22} /></div>
+                  <div>
+                    <h2 className="font-display font-bold text-2xl leading-tight">Двухфакторная аутентификация</h2>
+                    <div className="text-[12px] text-mut">Код отправлен на ваше устройство • {cid}</div>
+                  </div>
                 </div>
-                <h1 className="font-display text-3xl text-white mt-3" style={{ fontWeight: 800 }}>Код Стражи</h1>
-                <p className="text-silver/85 text-sm mt-1.5">
-                  Шестизначный код отправлен на ваше имперское устройство ({hit})
-                </p>
-                <div className="flex gap-2.5 mt-6 justify-between">
+                <p className="text-sm text-mut mt-4">Введите 6 цифр из push-уведомления Империи:</p>
+                <div className="mt-5 flex gap-2" onPaste={onPaste}>
                   {digits.map((d, i) => (
-                    <input key={i} ref={(el) => { boxRefs.current[i] = el; }} value={d} inputMode="numeric"
-                      onChange={(e) => setDigit(i, e.target.value)} onKeyDown={(e) => onCodeKey(i, e)}
-                      className="input-imp w-full aspect-[4/5] rounded-xl text-center font-display text-2xl text-gold focus:border-gold/70"
-                      style={{ fontWeight: 700 }} />
+                    <input
+                      key={i}
+                      ref={(el) => { refs.current[i] = el; }}
+                      value={d}
+                      onChange={(e) => onDigit(i, e.target.value)}
+                      onKeyDown={(e) => onKey(i, e)}
+                      inputMode="numeric"
+                      className="w-full h-14 text-center text-2xl font-bold text-gold input-imperial rounded-xl"
+                      autoFocus={i === 0}
+                    />
                   ))}
                 </div>
                 {err && <div className="mt-3 text-[13px] text-ember">⚠ {err}</div>}
-                <button className="btn-gold w-full mt-5 rounded-xl py-3 text-sm tracking-wide" onClick={verify} disabled={busy}>
-                  {busy ? "Сверка с реестром…" : "Подтвердить и войти"}
-                </button>
-                <div className="mt-4 flex items-center justify-between text-[13px]">
-                  <button className="text-silver/75 hover:text-gold transition-colors" onClick={() => { setStep("login"); setErr(""); }}>
-                    ← Назад
-                  </button>
-                  <button className="flex items-center gap-1.5 text-silver/75 hover:text-gold transition-colors disabled:opacity-40"
-                    onClick={genCode} disabled={cooldown > 0}>
-                    <IRefresh size={14} /> {cooldown > 0 ? `Повторно через ${cooldown} с` : "Отправить код снова"}
+                <div className="mt-5 flex gap-3">
+                  <button onClick={() => setPhase("creds")} className="btn-ghost h-11 px-4 rounded-xl text-sm">← Назад</button>
+                  <button
+                    onClick={() => {
+                      const c = genCode();
+                      setCode(c);
+                      setDigits(["", "", "", "", "", ""]);
+                      a.toast("push", "🔐 Гиперион-ID • Push-уведомление", `Новый код подтверждения: ${c}`);
+                    }}
+                    className="h-11 px-4 rounded-xl text-sm text-goldsoft hover:bg-gold/10 border border-gold/25 transition-colors"
+                  >
+                    Отправить код повторно
                   </button>
                 </div>
-                <div className="mt-5 text-[12px] text-silver/60 leading-relaxed glass-soft rounded-lg px-3 py-2.5">
-                  💡 Код пришёл имперским push-уведомлением (всплывёт справа сверху). В реальной Империи он приходит на Гиперион-ID.
-                </div>
+                <div className="mt-4 text-[12px] text-mut">Не видите уведомление? Код в демо-режиме дублируется во всплывающем оповещении.</div>
               </>
             )}
 
-            {step === "recover" && (
+            {phase === "recover" && (
               <>
-                <div className="flex items-center gap-2 text-gold/90 text-[11px] tracking-[0.28em] uppercase">
-                  <IRefresh size={14} /> Восстановление доступа
+                <h2 className="font-display font-bold text-3xl">Восстановление пароля</h2>
+                <p className="text-sm text-mut mt-1.5">Почта Империи отправит ссылку для сброса пароля.</p>
+                <div className="mt-6 space-y-4">
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-silver/80">ID гражданина</label>
+                    <input value={cid} onChange={(e) => setCid(e.target.value.toUpperCase())} placeholder="HIT-XXXXX" maxLength={9}
+                      className="mt-1.5 w-full h-12 input-imperial rounded-xl px-4 text-[15px] font-semibold tracking-wider text-goldsoft" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-silver/80">Email, привязанный к ID</label>
+                    <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hyperion.gov" type="email"
+                      className="mt-1.5 w-full h-12 input-imperial rounded-xl px-4 text-[15px]" />
+                  </div>
+                  {err && <div className="text-[13px] text-ember">⚠ {err}</div>}
+                  <button onClick={recover} className="btn-gold w-full h-12 rounded-xl font-bold text-[15px]">Отправить ссылку</button>
+                  <button onClick={() => { setPhase("creds"); setErr(""); }} className="w-full text-[13px] text-silver/70 hover:text-gold transition-colors">← Вернуться ко входу</button>
                 </div>
-                <h1 className="font-display text-3xl text-white mt-3" style={{ fontWeight: 800 }}>Печать Сената</h1>
-                <p className="text-silver/85 text-sm mt-1.5">Укажите почту, зарегистрированную в реестре граждан, — Сенат направит письмо для восстановления</p>
-                <input className="input-imp w-full mt-5 rounded-lg px-3.5 py-2.5 text-sm" placeholder="grażdанин@imperium.hy"
-                  value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitRecover()} />
-                {err && <div className="mt-3 text-[13px] text-ember">⚠ {err}</div>}
-                <button className="btn-gold w-full mt-5 rounded-xl py-3 text-sm tracking-wide" onClick={submitRecover} disabled={busy}>
-                  {busy ? "Гонец уже в пути…" : "Отправить письмо"}
-                </button>
-                <button className="mt-4 text-[13px] text-silver/75 hover:text-gold transition-colors flex items-center gap-1"
-                  onClick={() => { setStep("login"); setErr(""); }}>
-                  <IBack size={14} /> К Вратам Империи
-                </button>
               </>
             )}
 
-            {step === "recover-done" && (
-              <div className="text-center py-4">
-                <div className="text-5xl">🕊️</div>
-                <h1 className="font-display text-2xl text-white mt-4" style={{ fontWeight: 800 }}>Письмо отправлено</h1>
-                <p className="text-silver/85 text-sm mt-2 leading-relaxed">
-                  Гонец Империи несёт письмо с печатью Сената на <span className="text-gold">{email}</span>. Следуйте указаниям внутри.
+            {phase === "recoverDone" && (
+              <div className="text-center py-6 anim-pop">
+                <div className="text-5xl">📮</div>
+                <h2 className="font-display font-bold text-2xl mt-4">Письмо отправлено</h2>
+                <p className="text-sm text-mut mt-2 leading-relaxed">
+                  Ссылка для восстановления пароля доставлена на <span className="text-goldsoft">{email}</span>.
+                  Ссылка действует 30 минут — такова воля Казначейства безопасности.
                 </p>
-                <button className="btn-ghost w-full mt-6 rounded-xl py-2.5 text-sm" onClick={() => { setStep("login"); setEmail(""); }}>
-                  Вернуться ко Вратам
+                <button onClick={() => setPhase("creds")} className="btn-gold w-full h-12 rounded-xl font-bold text-[15px] mt-6">
+                  Вернуться ко входу
                 </button>
               </div>
             )}
-          </div>
 
-          <div className="mt-5 text-center text-[11px] text-silver/50 tracking-wide">
-            Империя Гиперион • цикл 47 • соединение защищено квантовой печатью
+            <div className="mt-6 pt-4 border-t border-line/60 flex items-center justify-between text-[11px] text-mut">
+              <span className="flex items-center gap-1.5"><Laurel className="w-8 text-gold/60" /></span>
+              <span>E2E-шифрование активно • v3.7 «Аврора»</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function IUserMini() {
+  return (
+    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="text-mut shrink-0">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20.5c1.3-3.5 4.1-5 7.5-5s6.2 1.5 7.5 5" />
+    </svg>
   );
 }
