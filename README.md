@@ -88,6 +88,25 @@ git push -u origin main
    и опубликует его автоматически при каждом коммите в `main`.
 3. Приложение будет доступно по адресу `https://hyperion612.github.io/Messenger_Imperium-Link/`.
 
+## ⚠️ Если на GitHub Pages белый экран
+
+Сайт живёт в подкаталоге `/Messenger_Imperium-Link/`, поэтому ассеты должны
+собираться с **относительными путями**. Чек-лист:
+
+1. **Settings → Pages → Build and deployment → Source** → выбрать **GitHub Actions**
+   (не «Deploy from a branch»!).
+2. Вкладка **Actions** → workflow **«Deploy to GitHub Pages»** →
+   **Run workflow** → ветка `main` (запускается автоматически на каждый push).
+3. Дождаться зелёной галочки (~1–2 мин), открыть сайт и сделать
+   **жёсткое обновление** `Ctrl + Shift + R` (старый кэш service worker может
+   показывать прежнюю версию; при необходимости — DevTools → Application →
+   Service Workers → Unregister).
+4. Ручная сборка для деплоя всегда с флагом: `npx vite build --base=./`
+   (workflow уже делает это сам; обычный `npm run build` собирает от корня `/`).
+
+Если скрипты не загрузились, вместо белого экрана появится загрузочная
+заставка Империи с подсказкой.
+
 ## 📜 Лицензия
 
 MIT © 2026 Hyperion612 — Империя Гиперион
