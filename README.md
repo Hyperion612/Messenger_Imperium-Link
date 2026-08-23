@@ -60,60 +60,7 @@ src/
 .github/workflows/pages.yml   автодеплой на GitHub Pages
 public/              manifest.webmanifest, sw.js
 ```
-
-## 🌐 Публикация в репозиторий
-
-В репозитории уже лежит `README.md`, поэтому истории нужно соединить:
-
-```bash
-cd Messenger_Imperium-Link            # папка с файлами проекта
-git init
-git add .
-git commit -m "feat: Империум Линк — мессенджер Империи Гиперион"
-git branch -M main
-git remote add origin https://github.com/Hyperion612/Messenger_Imperium-Link.git
-git pull origin main --allow-unrelated-histories --no-edit
-git push -u origin main
-```
-
-> Если файл `README.md` конфликтует при слиянии — оставьте новую версию:
-> `git checkout --theirs README.md && git add README.md && git commit --no-edit`
-
-## 🏛 GitHub Pages (автодеплой)
-
-Workflow `Build & Deploy to GitHub Pages` запускается на каждый push в `main`,
-собирает проект с относительными путями (`vite build --base=./`) и
-**сам публикует готовую сборку в ветку `gh-pages`**.
-
-Один раз настроить:
-
-1. Сделайте push (workflow запустится автоматически — вкладка **Actions**).
-2. Дождитесь зелёной галочки (~1–2 мин). В репозитории появится ветка `gh-pages`.
-3. **Settings → Pages → Build and deployment → Source** → **«Deploy from a branch»**.
-4. **Branch** → выбрать **`gh-pages`**, папка `/ (root)` → **Save**.
-5. Открыть сайт, жёсткое обновление `Ctrl + Shift + R`.
-
-Готово: `https://hyperion612.github.io/Messenger_Imperium-Link/`.
-Каждый следующий push в `main` обновляет ветку `gh-pages` и сайт автоматически.
-
-> Если job `deploy` завис в статусе *Waiting* — это окружение `github-pages`
-> ждёт подтверждения (Settings → Environments → github-pages → Required reviewers).
-> Можно одобрить, а можно игнорировать: сайт уже опубликован из ветки `gh-pages`.
-
-## ⚠️ Если на сайте белый экран или заставка «Связь с цитаделью не установлена»
-
-Это значит, что Pages отдаёт **исходники репозитория**, а не собранную сборку.
-Причина — в Pages выбрана ветка `main` (или корень репозитория). Исправление:
-
-1. Вкладка **Actions** → убедиться, что workflow
-   **«Build & Deploy to GitHub Pages»** отработал с зелёной галочкой
-   (иначе — запустить вручную: **Run workflow** → ветка `main`).
-2. **Settings → Pages → Source: «Deploy from a branch» → Branch: `gh-pages`** → Save.
-3. Жёсткое обновление `Ctrl + Shift + R`. Если показывает старое — DevTools →
-   Application → Service Workers → Unregister.
-
-Если скрипты не загрузились, вместо белого экрана появится загрузочная
-заставка Империи с подсказкой.
+ССЫЛКА:https://hyperion612.github.io/Messenger_Imperium-Link/
 
 ## 📜 Лицензия
 
