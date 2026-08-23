@@ -81,28 +81,36 @@ git push -u origin main
 
 ## 🏛 GitHub Pages (автодеплой)
 
-После первого push в репозитории:
+Workflow `Build & Deploy to GitHub Pages` запускается на каждый push в `main`,
+собирает проект с относительными путями (`vite build --base=./`) и
+**сам публикует готовую сборку в ветку `gh-pages`**.
 
-1. **Settings → Pages → Source** → выбрать **GitHub Actions**.
-2. Workflow `Deploy to GitHub Pages` соберёт проект (`vite build --base=./`)
-   и опубликует его автоматически при каждом коммите в `main`.
-3. Приложение будет доступно по адресу `https://hyperion612.github.io/Messenger_Imperium-Link/`.
+Один раз настроить:
 
-## ⚠️ Если на GitHub Pages белый экран
+1. Сделайте push (workflow запустится автоматически — вкладка **Actions**).
+2. Дождитесь зелёной галочки (~1–2 мин). В репозитории появится ветка `gh-pages`.
+3. **Settings → Pages → Build and deployment → Source** → **«Deploy from a branch»**.
+4. **Branch** → выбрать **`gh-pages`**, папка `/ (root)` → **Save**.
+5. Открыть сайт, жёсткое обновление `Ctrl + Shift + R`.
 
-Сайт живёт в подкаталоге `/Messenger_Imperium-Link/`, поэтому ассеты должны
-собираться с **относительными путями**. Чек-лист:
+Готово: `https://hyperion612.github.io/Messenger_Imperium-Link/`.
+Каждый следующий push в `main` обновляет ветку `gh-pages` и сайт автоматически.
 
-1. **Settings → Pages → Build and deployment → Source** → выбрать **GitHub Actions**
-   (не «Deploy from a branch»!).
-2. Вкладка **Actions** → workflow **«Deploy to GitHub Pages»** →
-   **Run workflow** → ветка `main` (запускается автоматически на каждый push).
-3. Дождаться зелёной галочки (~1–2 мин), открыть сайт и сделать
-   **жёсткое обновление** `Ctrl + Shift + R` (старый кэш service worker может
-   показывать прежнюю версию; при необходимости — DevTools → Application →
-   Service Workers → Unregister).
-4. Ручная сборка для деплоя всегда с флагом: `npx vite build --base=./`
-   (workflow уже делает это сам; обычный `npm run build` собирает от корня `/`).
+> Если job `deploy` завис в статусе *Waiting* — это окружение `github-pages`
+> ждёт подтверждения (Settings → Environments → github-pages → Required reviewers).
+> Можно одобрить, а можно игнорировать: сайт уже опубликован из ветки `gh-pages`.
+
+## ⚠️ Если на сайте белый экран или заставка «Связь с цитаделью не установлена»
+
+Это значит, что Pages отдаёт **исходники репозитория**, а не собранную сборку.
+Причина — в Pages выбрана ветка `main` (или корень репозитория). Исправление:
+
+1. Вкладка **Actions** → убедиться, что workflow
+   **«Build & Deploy to GitHub Pages»** отработал с зелёной галочкой
+   (иначе — запустить вручную: **Run workflow** → ветка `main`).
+2. **Settings → Pages → Source: «Deploy from a branch» → Branch: `gh-pages`** → Save.
+3. Жёсткое обновление `Ctrl + Shift + R`. Если показывает старое — DevTools →
+   Application → Service Workers → Unregister.
 
 Если скрипты не загрузились, вместо белого экрана появится загрузочная
 заставка Империи с подсказкой.
