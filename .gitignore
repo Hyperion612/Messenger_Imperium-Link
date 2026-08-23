@@ -1,5 +1,27 @@
+# зависимости
 node_modules/
-.next/
+
+# сборка
 dist/
+dist-ssr/
+
+# локальные переменные окружения
+.env
+.env.local
+.env.*.local
+
+# логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# редакторы и ОС
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.local
+.next/
 build/
 *.log
