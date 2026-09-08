@@ -4,10 +4,7 @@ import type { AppState, Chat, Message, MsgKind, Session, Settings, Toast, UIStat
 import {
   AWARDS,
   BANNED_WORDS,
-  CANNED,
   EDICTS,
-  GENERIC_REPLIES,
-  GROUP_CANNED,
   LAWS,
   MARKET_ITEMS,
   seedChats,
@@ -327,35 +324,7 @@ function buildActions(
     sfx.receive(soundOn());
   }
 
-  function scheduleReply(chatId: string, userText: string) {
-    const s = ref.current;
-    const chat = s.chats[chatId];
-    if (!chat || chat.readonly) return;
-    const candidates = chat.memberIds.filter((id) => id !== ME && id !== "HIT-00001" && s.citizens[id]?.presence === "online");
-    if (!candidates.length) return;
-    const prob = chat.kind === "dm" ? 0.85 : 0.55;
-    if (Math.random() > prob) return;
-    const who = pick(candidates);
-    const citizen = s.citizens[who];
-    const mentioned = userText.includes("@" + citizen.name.split(" ")[0]) || userText.includes("@" + citizen.name);
-    const pool = CANNED[who] ?? GENERIC_REPLIES;
-    const text = mentioned
-      ? `@${s.citizens[ME].name.split(" ")[0]}, звал? Я на связи. ${pick(pool)}`
-      : pick(pool);
-    later(() => dispatch({ type: "typing", chatId, who }), 900 + Math.random() * 900);
-    later(() => {
-      dispatch({ type: "typing", chatId, who: null });
-      deliver(chatId, {
-        id: uid(),
-        chatId,
-        authorId: who,
-        kind: "text",
-        text,
-        ts: Date.now(),
-        status: "read",
-      });
-    }, 2400 + Math.random() * 1600);
-  }
+  /* scheduleReply удалена — только государственные каналы */
 
   return {
     toast,
@@ -425,7 +394,6 @@ function buildActions(
       sfx.send(soundOn());
       later(() => dispatch({ type: "msgStatus", chatId, msgId: msg.id, status: "sent" }), 380);
       later(() => dispatch({ type: "msgStatus", chatId, msgId: msg.id, status: "delivered" }), 1100);
-      scheduleReply(chatId, text);
       return true;
     },
 
@@ -539,55 +507,7 @@ function buildActions(
       }
     },
 
-    createGroup(title: string, emoji: string, memberIds: string[]) {
-      const s = ref.current;
-      const me = s.citizens[ME];
-      const lvl = { НОВИЧОК: 1, ГРАЖДАНИН: 2, СТРАЖ: 3, ОФИЦЕР: 4, ГЕНЕРАЛ: 5, СЕНАТОР: 6, ИМПЕРАТОР: 7 }[me.rank];
-      if (lvl < 2) {
-        toast("warning", "Недостаточно прав", "Создание групп доступно с ранга ГРАЖДАНИН.");
-        return;
-      }
-      if (!title.trim()) return;
-      const chat: Chat = {
-        id: `g-${uid()}`,
-        kind: "group",
-        title: title.trim(),
-        emoji: emoji || "⚔️",
-        hue: Math.floor(Math.random() * 360),
-        memberIds,
-        description: `Группа создана гражданином ${me.name}. До 1000 участников.`,
-      };
-      dispatch({ type: "createChat", chat });
-      dispatch({ type: "openChat", chatId: chat.id });
-      dispatch({ type: "ui", patch: { modal: null } });
-      toast("success", "Группа создана ⚔️", `«${chat.title}» • ${memberIds.length + 1} участников`);
-    },
 
-    createChannel(title: string, emoji: string) {
-      const s = ref.current;
-      const me = s.citizens[ME];
-      const lvl = { НОВИЧОК: 1, ГРАЖДАНИН: 2, СТРАЖ: 3, ОФИЦЕР: 4, ГЕНЕРАЛ: 5, СЕНАТОР: 6, ИМПЕРАТОР: 7 }[me.rank];
-      if (!title.trim()) return;
-      if (lvl < 4) {
-        toast("warning", "Недостаточно прав", `Создание каналов доступно с ранга ОФИЦЕР. Ваш ранг: ${me.rank}. Обратитесь в Сенат за повышением.`);
-        sfx.error(soundOn());
-        return;
-      }
-      const chat: Chat = {
-        id: `c-${uid()}`,
-        kind: "channel",
-        title: title.trim(),
-        emoji: emoji || "📣",
-        hue: Math.floor(Math.random() * 360),
-        memberIds: [ME],
-        subscribers: 1,
-        description: `Канал, созданный офицером ${me.name}. Подписчики — вся Империя.`,
-      };
-      dispatch({ type: "createChat", chat });
-      dispatch({ type: "openChat", chatId: chat.id });
-      dispatch({ type: "ui", patch: { modal: null } });
-      toast("success", "Канал основан 📣", `«${chat.title}» вещает на всю Империю.`);
-    },
 
     setSettings(patch: Partial<Settings>) {
       dispatch({ type: "settings", patch });
@@ -665,21 +585,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "presence", id, presence: next });
     }, 14_000);
 
-    /* фоновая жизнь чатов */
-    const ambient = () => {
-      const st = ref.current;
-      const pool = Object.keys(GROUP_CANNED).filter((id) => st.chats[id] && !st.chats[id].archived);
-      const chatId = pick(pool);
-      const chat = st.chats[chatId];
-      const online = chat.memberIds.filter((id) => st.citizens[id]?.presence === "online");
-      if (!online.length) return;
-      const who = pick(online);
-      botDeliver(chatId, who, pick(GROUP_CANNED[chatId]));
-    };
-    later(ambient, 9_000);
-    every(ambient, 26_000);
-
-    /* указы и законы */
+    /* указы и законы от Императора */
     later(() => botDeliver("ch-emperor", "HIT-00001", pick(EDICTS), "edict"), 38_000);
     later(() => botDeliver("ch-law", "HIT-00010", pick(LAWS), "law"), 80_000);
     every(() => botDeliver("ch-law", "HIT-00010", pick(LAWS), "law"), 170_000);

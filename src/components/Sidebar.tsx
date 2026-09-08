@@ -2,14 +2,12 @@ import { useMemo, useState } from "react";
 import { fmtClock, useStore } from "../store";
 import type { Chat, Message } from "../types";
 import { RANK_META } from "../data/seed";
-import { IArchive, IBell, IBellOff, IChevD, IPin, IPlus, ISearch, IVerified, IX } from "../icons";
+import { IArchive, IBell, IBellOff, IChevD, IPin, ISearch, IVerified, IX } from "../icons";
 
-type Tab = "all" | "dm" | "group" | "channel" | "archive";
+type Tab = "all" | "channel" | "archive";
 const TABS: { id: Tab; label: string }[] = [
-  { id: "all", label: "Все" },
-  { id: "dm", label: "Личные" },
-  { id: "group", label: "Группы" },
-  { id: "channel", label: "Каналы" },
+  { id: "all", label: "Все каналы" },
+  { id: "channel", label: "Государственные" },
   { id: "archive", label: "Архив" },
 ];
 
@@ -63,9 +61,6 @@ export default function Sidebar() {
     const filtered = chats.filter((c) => {
       if (tab === "archive") return c.archived;
       if (c.archived) return false;
-      if (tab === "dm") return c.kind === "dm";
-      if (tab === "group") return c.kind === "group";
-      if (tab === "channel") return c.kind === "channel";
       return true;
     });
     if (q.trim()) {
@@ -94,13 +89,7 @@ export default function Sidebar() {
           <div className="flex items-baseline gap-2">
             <span className="font-display font-extrabold text-xl">Империум <span className="text-gold">Линк</span></span>
           </div>
-          <button
-            onClick={() => a.ui({ modal: "newGroup" })}
-            title="Создать группу или канал"
-            className="btn-ghost w-9 h-9 rounded-xl grid place-items-center hover:rotate-90 transition-transform duration-300"
-          >
-            <IPlus size={17} />
-          </button>
+
         </div>
         <div className="mt-3 flex items-center gap-2 input-imperial rounded-xl h-10 px-3">
           <ISearch size={16} className="text-mut shrink-0" />

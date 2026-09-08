@@ -4,6 +4,7 @@ import { fmtClock, lightLevel, useStore } from "../store";
 import type { Toast } from "../types";
 import { AWARDS, MARKET_ITEMS, RANK_META, RANK_ORDER } from "../data/seed";
 import { chatAvatarStyle, lastOf } from "./Sidebar";
+import AdminPanel from "./AdminPanel";
 import { IArrowR, ICheck, ICoins, IFlag, ILock, ILogout, ISearch, IStar, IUsers, IWallet, IX, ImperialSeal, Laurel } from "../icons";
 
 const ME = "HIT-77777";
@@ -33,7 +34,13 @@ export default function OverlayHost() {
       {m === "market" && <MarketModal />}
       {m === "treasury" && <TreasuryModal />}
       {m === "report" && <ReportModal />}
-      {m === "newGroup" && <NewGroupModal />}
+      {m === "admin" && (
+        <div className="fixed inset-0 z-[80] bg-ink2/60 backdrop-blur-sm anim-fade">
+          <div className="absolute inset-0 glass-strong anim-slide-left">
+            <AdminPanel />
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -650,72 +657,4 @@ function ReportModal() {
   );
 }
 
-/* ================= новая группа ================= */
-function NewGroupModal() {
-  const { state, a } = useStore();
-  const [mode, setMode] = useState<"group" | "channel">("group");
-  const [title, setTitle] = useState("");
-  const [emoji, setEmoji] = useState("⚔️");
-  const [sel, setSel] = useState<string[]>(["HIT-24816"]);
-  const close = () => a.ui({ modal: null });
-  const people = Object.values(state.citizens).filter((c) => c.id !== ME && c.rank !== "ИМПЕРАТОР");
 
-  return (
-    <Modal onClose={close} w="max-w-md">
-      <div className="p-5 border-b border-line/50 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gold/12 border border-gold/30 grid place-items-center text-gold"><IUsers size={19} /></div>
-        <div className="flex-1">
-          <div className="font-display font-bold text-lg">Новое собрание</div>
-          <div className="text-[11.5px] text-mut">{mode === "group" ? "группа • с ранга ГРАЖДАНИН • до 1000 участников" : "канал • с ранга ОФИЦЕР • подписчики без ограничений"}</div>
-        </div>
-        <button onClick={close} className="w-8 h-8 rounded-lg grid place-items-center text-mut hover:text-gold"><IX size={16} /></button>
-      </div>
-      <div className="p-5 space-y-4">
-        <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-xl bg-white/[0.04] border border-line/60">
-          <button onClick={() => setMode("group")} className={`h-9 rounded-lg text-[13px] font-bold transition-all ${mode === "group" ? "bg-gold text-ink shadow" : "text-silver/70 hover:text-gold"}`}>⚔️ Группа</button>
-          <button onClick={() => setMode("channel")} className={`h-9 rounded-lg text-[13px] font-bold transition-all ${mode === "channel" ? "bg-gold text-ink shadow" : "text-silver/70 hover:text-gold"}`}>📣 Канал</button>
-        </div>
-        <div>
-          <label className="text-[11px] uppercase tracking-widest text-silver/80">Название</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Например: Дозор Восточных Врат" maxLength={40} className="mt-1.5 w-full h-12 input-imperial rounded-xl px-4 text-[15px] font-semibold" />
-        </div>
-        <div>
-          <label className="text-[11px] uppercase tracking-widest text-silver/80">Знамя</label>
-          <div className="mt-1.5 flex gap-2">
-            {["⚔️", "🛡", "🦅", "🏰", "🗡", "🚩", "⚜️", "🔥"].map((e) => (
-              <button key={e} onClick={() => setEmoji(e)} className={`w-10 h-10 rounded-xl grid place-items-center text-lg border transition-all ${emoji === e ? "border-gold bg-gold/15 scale-110" : "border-line/60 hover:border-silver/40"}`}>{e}</button>
-            ))}
-          </div>
-        </div>
-        {mode === "channel" && (
-          <div className="rounded-xl border border-azure/25 bg-azure/[0.06] px-4 py-3 text-[12px] leading-relaxed text-silver/85">
-            📣 В канале вещает только основатель. Подписчики читают и внимают — число подписчиков не ограничено.
-          </div>
-        )}
-        {mode === "group" && <div>
-          <label className="text-[11px] uppercase tracking-widest text-silver/80">Участники • {sel.length + 1}</label>
-          <div className="mt-1.5 max-h-44 overflow-y-auto space-y-1 pr-1">
-            {people.map((c) => {
-              const on = sel.includes(c.id);
-              return (
-                <button key={c.id} onClick={() => setSel((s) => (on ? s.filter((x) => x !== c.id) : [...s, c.id]))} className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl border text-left transition-colors ${on ? "border-gold/40 bg-gold/[0.07]" : "border-transparent hover:bg-white/[0.04]"}`}>
-                  <span className="text-lg">{c.emoji}</span>
-                  <span className="text-[13px] font-semibold truncate flex-1">{c.name}</span>
-                  <span className="text-[9.5px] font-bold" style={{ color: RANK_META[c.rank].color }}>{c.rank}</span>
-                  {on && <ICheck size={15} className="text-gold" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>}
-        <button
-          onClick={() => (mode === "group" ? a.createGroup(title, emoji, sel) : a.createChannel(title, emoji))}
-          disabled={!title.trim()}
-          className="btn-gold w-full h-12 rounded-xl font-bold text-[15px]"
-        >
-          {mode === "group" ? "Создать группу" : "Основать канал"}
-        </button>
-      </div>
-    </Modal>
-  );
-}

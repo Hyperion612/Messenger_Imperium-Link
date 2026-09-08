@@ -2,8 +2,9 @@ import { StoreProvider, useStore } from "./store";
 import Login from "./components/Login";
 import Sidebar from "./components/Sidebar";
 import ChatView from "./components/ChatView";
+import AdminPanel from "./components/AdminPanel";
 import OverlayHost from "./components/Overlays";
-import { IChat, ICoins, ISearch, IStore, ImperialSeal } from "./icons";
+import { IChat, ICoins, ICrown, ISearch, IStore, ImperialSeal } from "./icons";
 import { RANK_META } from "./data/seed";
 
 const ME = "HIT-77777";
@@ -58,10 +59,13 @@ function Rail() {
           <ImperialSeal size={40} />
         </button>
         <div className="w-8 h-px bg-line/70 mb-1" />
-        <Btn icon={<IChat size={20} />} label="Чаты" onClick={() => a.closeChat()} active={!state.ui.modal && !state.ui.activeChatId} badge={unread} />
+        <Btn icon={<IChat size={20} />} label="Каналы" onClick={() => a.closeChat()} active={!state.ui.modal && !state.ui.activeChatId} badge={unread} />
         <Btn icon={<ISearch size={20} />} label="Поиск по Империи" onClick={() => a.ui({ modal: "search" })} active={state.ui.modal === "search"} />
         <Btn icon={<ICoins size={20} />} label="Казначейство" onClick={() => a.ui({ modal: "treasury" })} active={state.ui.modal === "treasury"} />
         <Btn icon={<IStore size={20} />} label="Рынок Гипериона" onClick={() => a.ui({ modal: "market" })} active={state.ui.modal === "market"} />
+        {(me.rank === "СЕНАТОР" || me.rank === "ИМПЕРАТОР") && (
+          <Btn icon={<ICrown size={20} />} label="Панель Администратора" onClick={() => a.ui({ modal: "admin" })} active={state.ui.modal === "admin"} />
+        )}
         <div className="mt-auto flex flex-col items-center gap-2">
           <div className="flex items-center gap-1 text-[9px] text-mut" title="Соединение стабильно">
             <span className="w-1.5 h-1.5 rounded-full bg-mint animate-pulse" />
@@ -83,7 +87,7 @@ function Rail() {
 
       {/* мобильная нижняя панель */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 glass-strong border-t border-gold/15 h-[62px] flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
-        <Btn icon={<IChat size={21} />} label="Чаты" onClick={() => { a.ui({ modal: null }); a.closeChat(); }} active={!state.ui.modal && !state.ui.activeChatId} badge={unread} />
+        <Btn icon={<IChat size={21} />} label="Каналы" onClick={() => { a.ui({ modal: null }); a.closeChat(); }} active={!state.ui.modal && !state.ui.activeChatId} badge={unread} />
         <Btn icon={<ISearch size={21} />} label="Поиск" onClick={() => a.ui({ modal: "search" })} active={state.ui.modal === "search"} />
         <button onClick={() => a.ui({ modal: "profile" })} className="relative -mt-6 w-14 h-14 rounded-2xl grid place-items-center text-2xl"
           style={{ background: `linear-gradient(135deg, hsl(${me.hue} 60% 24%), hsl(${me.hue + 40} 60% 12%))`, boxShadow: `0 0 0 2px ${RANK_META[me.rank].color}, 0 6px 24px rgba(0,0,0,0.5)` }}>
@@ -91,6 +95,9 @@ function Rail() {
         </button>
         <Btn icon={<ICoins size={21} />} label="Казначейство" onClick={() => a.ui({ modal: "treasury" })} active={state.ui.modal === "treasury"} />
         <Btn icon={<IStore size={21} />} label="Рынок" onClick={() => a.ui({ modal: "market" })} active={state.ui.modal === "market"} />
+        {(me.rank === "СЕНАТОР" || me.rank === "ИМПЕРАТОР") && (
+          <Btn icon={<ICrown size={21} />} label="Админ" onClick={() => a.ui({ modal: "admin" })} active={state.ui.modal === "admin"} />
+        )}
       </nav>
     </>
   );
