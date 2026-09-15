@@ -87,7 +87,9 @@ export type ModalKind =
   | "profile"
   | "citizen"
   | "search"
-  | "admin";
+  | "admin"
+  | "connection"
+  | "dev";
 
 export interface UIState {
   activeChatId: string | null;

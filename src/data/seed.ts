@@ -76,13 +76,8 @@ export function seedCitizens(): Record<string, Citizen> {
 }
 
 export function seedChats(): Record<string, Chat> {
-  const list: Chat[] = [
-    { id: "ch-emperor", kind: "channel", title: "Слово Императора", emoji: "👑", hue: 48, memberIds: ["HIT-00001"], subscribers: 128407, pinned: true, verified: true, readonly: true, description: "Официальный канал Императора. Только чтение для граждан." },
-    { id: "ch-law", kind: "channel", title: "Вестник Закона", emoji: "📜", hue: 210, memberIds: ["HIT-00010"], subscribers: 98112, verified: true, readonly: true, description: "Системные уведомления о законах Империи." },
-    { id: "ch-market", kind: "channel", title: "Рынок Гипериона", emoji: "🏛", hue: 275, memberIds: ["HIT-00301"], subscribers: 45220, readonly: true, description: "Товары и лавки Империи. Покупки через Казначейство." },
-    { id: "ch-senat", kind: "channel", title: "Сенат Империи", emoji: "🏛", hue: 48, memberIds: ["HIT-00301"], subscribers: 34500, verified: true, readonly: true, description: "Официальные решения Сената. Только чтение." },
-  ];
-  return Object.fromEntries(list.map((x) => [x.id, x]));
+  // Чистый мессенджер — чаты создаются пользователями
+  return {};
 }
 
 let seq = 0;
@@ -103,28 +98,8 @@ function m(chatId: string, authorId: string, kind: Message["kind"], text: string
 }
 
 export function seedMessages(): Record<string, Message[]> {
-  seq = 0;
-  const all: Message[] = [
-    m("ch-emperor", "HIT-00001", "edict", "Слово Императора: свет разума сильнее тьмы невежества. Да процветает Гиперион.", 400),
-    m("ch-emperor", "HIT-00001", "edict", "Указ №117: награды за активность удвоены до конца текущего цикла. Казначейство уже наполнило чаши.", 180),
-    m("ch-emperor", "HIT-00001", "edict", "Слово Императора: единство провинций — сила Империи. Врата между Авророй и Кристаллис открыты для всех граждан.", 30),
-
-    m("ch-law", "HIT-00010", "law", "Закон HYR-124: каждый гражданин обязан хранить ключи шифрования в тайне. Передача ключей карается понижением Уровня Света.", 350),
-    m("ch-law", "HIT-00010", "law", "Закон HYR-125: автоматическая модерация ИИ-ОКО распространяется на все публичные каналы и комнаты провинций.", 120),
-    m("ch-law", "HIT-00010", "law", "Закон HYR-126: переводы HYPER между гражданами освобождены от пошлин до конца цикла.", 15),
-
-    m("ch-market", "HIT-00301", "market", "🏛 Открыта новая лавка кристаллов в Кристаллисе. Скидка 10% по коду AURUM — назовите его на Рынке.", 200),
-    m("ch-market", "HIT-00301", "image", "Новый товар недели: Кристалл Света. Усиливает Уровень Света на +25. Успейте до конца цикла!", 90, { image: "https://image.qwenlm.ai/generated-images/5ef927f2-404b-414f-b987-c55f4a50e1b8/_result.png" }),
-
-    m("ch-senat", "HIT-00301", "text", "Сенат рассмотрит закон о рынках на следующей сессии. Прошу Легион подготовить врата для голосования.", 200),
-    m("ch-senat", "HIT-00301", "text", "Анализ настроений граждан: 94% позитивных. Рекомендую объявить праздник.", 20),
-  ];
-
-  const map: Record<string, Message[]> = {};
-  for (const msg of all) {
-    (map[msg.chatId] ??= []).push(msg);
-  }
-  return map;
+  // Чистый мессенджер — сообщения создаются пользователями
+  return {};
 }
 
 /* Реплики ботов удалены — только государственные каналы */
