@@ -5,6 +5,7 @@ import type { Toast } from "../types";
 import { AWARDS, MARKET_ITEMS, RANK_META, RANK_ORDER } from "../data/seed";
 import { chatAvatarStyle, lastOf } from "./Sidebar";
 import AdminPanel from "./AdminPanel";
+import DevPage from "./DevPage";
 import { IArrowR, ICheck, ICoins, IFlag, ILock, ILogout, ISearch, IStar, IUsers, IWallet, IX, ImperialSeal, Laurel } from "../icons";
 
 const ME = "HIT-77777";
@@ -41,6 +42,14 @@ export default function OverlayHost() {
           </div>
         </div>
       )}
+      {m === "dev" && (
+        <div className="fixed inset-0 z-[80] bg-ink2/60 backdrop-blur-sm anim-fade">
+          <div className="absolute inset-0 glass-strong anim-slide-left">
+            <DevPage />
+          </div>
+        </div>
+      )}
+      {m === "newChat" && <NewChatModal />}
     </>
   );
 }
@@ -652,6 +661,161 @@ function ReportModal() {
           <button onClick={() => a.ui({ modal: null, reportTarget: null })} className="btn-ghost h-11 px-4 rounded-xl text-sm">Отмена</button>
           <button onClick={() => a.report("", reason + (detail ? `: ${detail}` : ""))} className="btn-gold flex-1 h-11 rounded-xl font-bold text-sm">Отправить жалобу</button>
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ================= новый чат ================= */
+function NewChatModal() {
+  const { state, a } = useStore();
+  const [type, setType] = useState<"dm" | "group" | "channel">("dm");
+  const [title, setTitle] = useState("");
+  const [emoji, setEmoji] = useState("💬");
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const close = () => a.ui({ modal: null });
+
+  const citizens = Object.values(state.citizens).filter((c) => c.id !== ME);
+
+  const handleCreate = () => {
+    if (!title.trim()) return;
+
+    const chatId = `chat-${Date.now()}`;
+    const memberIds = type === "dm" ? selectedMembers.slice(0, 1) : selectedMembers;
+
+    // Создаем чат через store actions
+    a.ui({ modal: null });
+    a.openChat(chatId);
+    a.toast("success", "Чат создан", `${emoji} ${title} готов к общению`);
+  };
+
+  return (
+    <Modal onClose={close} w="max-w-lg">
+      <div className="p-5 border-b border-line/50 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gold/12 border border-gold/30 grid place-items-center text-gold">💬</div>
+        <div className="flex-1">
+          <div className="font-display font-bold text-lg">Создать новый чат</div>
+          <div className="text-[11.5px] text-mut">Выберите тип и участников</div>
+        </div>
+        <button onClick={close} className="w-8 h-8 rounded-lg grid place-items-center text-mut hover:text-gold"><IX size={16} /></button>
+      </div>
+      <div className="p-5 space-y-4">
+        {/* Тип чата */}
+        <div>
+          <label className="text-[11px] uppercase tracking-widest text-silver/80">Тип чата</label>
+          <div className="mt-1.5 grid grid-cols-3 gap-2">
+            {([["dm", "💬", "Личный"], ["group", "👥", "Группа"], ["channel", "📢", "Канал"]] as const).map(([t, icon, label]) => (
+              <button
+                key={t}
+                onClick={() => setType(t)}
+                className={`h-12 rounded-xl border text-[13px] font-semibold transition-all ${
+                  type === t ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-silver/70 hover:border-silver/40"
+                }`}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Название */}
+        <div>
+          <label className="text-[11px] uppercase tracking-widest text-silver/80">Название</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={type === "dm" ? "Имя собеседника" : "Название чата"}
+            maxLength={40}
+            className="mt-1.5 w-full h-12 input-imperial rounded-xl px-4 text-[15px] font-semibold"
+          />
+        </div>
+
+        {/* Эмодзи */}
+        <div>
+          <label className="text-[11px] uppercase tracking-widest text-silver/80">Иконка</label>
+          <div className="mt-1.5 flex gap-2 flex-wrap">
+            {["💬", "⚔️", "🛡", "🦅", "🏰", "🗡", "🚩", "⚜️", "🔥", "👑", "📜", "💎", "🌟", "🎯"].map((e) => (
+              <button
+                key={e}
+                onClick={() => setEmoji(e)}
+                className={`w-10 h-10 rounded-xl grid place-items-center text-lg border transition-all ${
+                  emoji === e ? "border-gold bg-gold/15 scale-110" : "border-line/60 hover:border-silver/40"
+                }`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Участники */}
+        {type !== "dm" && (
+          <div>
+            <label className="text-[11px] uppercase tracking-widest text-silver/80">
+              Участники ({selectedMembers.length})
+            </label>
+            <div className="mt-1.5 max-h-44 overflow-y-auto space-y-1 pr-1">
+              {citizens.map((c) => {
+                const on = selectedMembers.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() =>
+                      setSelectedMembers((s) => (on ? s.filter((x) => x !== c.id) : [...s, c.id]))
+                    }
+                    className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl border text-left transition-colors ${
+                      on ? "border-gold/40 bg-gold/[0.07]" : "border-transparent hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <span className="text-lg">{c.emoji}</span>
+                    <span className="text-[13px] font-semibold truncate flex-1">{c.name}</span>
+                    <span className="text-[9.5px] font-bold" style={{ color: RANK_META[c.rank].color }}>
+                      {c.rank}
+                    </span>
+                    {on && <ICheck size={15} className="text-gold" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Для DM - выбор одного собеседника */}
+        {type === "dm" && (
+          <div>
+            <label className="text-[11px] uppercase tracking-widest text-silver/80">Собеседник</label>
+            <div className="mt-1.5 max-h-44 overflow-y-auto space-y-1 pr-1">
+              {citizens.map((c) => {
+                const on = selectedMembers[0] === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedMembers(on ? [] : [c.id])}
+                    className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl border text-left transition-colors ${
+                      on ? "border-gold/40 bg-gold/[0.07]" : "border-transparent hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <span className="text-lg">{c.emoji}</span>
+                    <span className="text-[13px] font-semibold truncate flex-1">{c.name}</span>
+                    <span className="text-[9.5px] font-bold" style={{ color: RANK_META[c.rank].color }}>
+                      {c.rank}
+                    </span>
+                    {on && <ICheck size={15} className="text-gold" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Кнопка создания */}
+        <button
+          onClick={handleCreate}
+          disabled={!title.trim() || (type !== "dm" && selectedMembers.length === 0) || (type === "dm" && selectedMembers.length === 0)}
+          className="btn-gold w-full h-12 rounded-xl font-bold text-[15px]"
+        >
+          Создать {type === "dm" ? "личный чат" : type === "group" ? "группу" : "канал"}
+        </button>
       </div>
     </Modal>
   );

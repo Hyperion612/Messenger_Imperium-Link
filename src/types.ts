@@ -84,6 +84,7 @@ export type ModalKind =
   | "treasury"
   | "report"
   | "newGroup"
+  | "newChat"
   | "profile"
   | "citizen"
   | "search"

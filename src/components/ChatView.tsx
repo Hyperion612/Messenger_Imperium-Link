@@ -5,7 +5,7 @@ import { EMOJI_CATS, FAKE_DOCS, IMAGES, RANK_META } from "../data/seed";
 import { chatAvatarStyle } from "./Sidebar";
 import {
   IBell, IBellOff, ICheck, IChecks, IChevL, IClock, IClip, ICoins, ICopy, IDoc, IDownload,
-  IFlag, IForward, ILock, IMega, IMic, IPause, IPen, IPhoto, IPlay, IReply, ISend, ISmile,
+  IFlag, IForward, ILandmark, ILock, IMega, IMic, IPause, IPen, IPhoto, IPlay, IPlus, IReply, ISend, ISmile,
   IStop, ITrash, IVerified, ImperialSeal,
 } from "../icons";
 
@@ -21,7 +21,7 @@ export default function ChatView() {
 
 /* ============ пустое состояние ============ */
 function EmptyState() {
-  const { state } = useStore();
+  const { state, a } = useStore();
   const online = Object.values(state.citizens).filter((c) => c.presence === "online").length;
   return (
     <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-grid relative">
@@ -30,24 +30,38 @@ function EmptyState() {
         <ImperialSeal size={110} className="glow-breathe relative" />
       </div>
       <h2 className="font-display font-extrabold text-3xl mt-8">
-        Врата <span className="text-gold">ожидания</span>
+        Добро пожаловать в <span className="text-gold">Империум Линк</span>
       </h2>
-      <p className="text-mut text-sm mt-2 max-w-sm text-center leading-relaxed">
-        Выберите чат из списка слева — личные переписки, комнаты провинций и каналы Империи уже на связи.
+      <p className="text-mut text-sm mt-2 max-w-md text-center leading-relaxed">
+        Государственный мессенджер Империи Гиперион. Создайте новый чат или присоединитесь к существующему.
       </p>
       <div className="mt-8 flex gap-3">
         <div className="glass rounded-xl px-5 py-3 text-center">
           <div className="font-display font-bold text-2xl text-gold">{online}</div>
-          <div className="text-[11px] text-mut mt-0.5">друзей в сети</div>
+          <div className="text-[11px] text-mut mt-0.5">граждан в сети</div>
         </div>
         <div className="glass rounded-xl px-5 py-3 text-center">
           <div className="font-display font-bold text-2xl text-silver">{state.balance}</div>
           <div className="text-[11px] text-mut mt-0.5">HYPER в казне</div>
         </div>
         <div className="glass rounded-xl px-5 py-3 text-center">
-          <div className="font-display font-bold text-2xl text-azure">4</div>
-          <div className="text-[11px] text-mut mt-0.5">провинции</div>
+          <div className="font-display font-bold text-2xl text-azure">{Object.keys(state.chats).length}</div>
+          <div className="text-[11px] text-mut mt-0.5">активных чатов</div>
         </div>
+      </div>
+      <div className="mt-8 flex gap-3">
+        <button
+          onClick={() => a.ui({ modal: "newChat" })}
+          className="btn-gold h-11 px-6 rounded-xl font-bold text-[14px] flex items-center gap-2"
+        >
+          <IPlus size={18} /> Создать чат
+        </button>
+        <button
+          onClick={() => a.ui({ modal: "dev" })}
+          className="btn-ghost h-11 px-6 rounded-xl font-semibold text-[14px] flex items-center gap-2"
+        >
+          <ILandmark size={18} /> Для разработчиков
+        </button>
       </div>
       <div className="mt-10 text-[11px] text-mut flex items-center gap-2">
         <ILock size={13} className="text-gold/70" /> Сквозное шифрование активно • Сеть Империи стабильна
